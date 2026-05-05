@@ -1,0 +1,31 @@
+{
+  "active_plan": "/home/heyatoy/Projects/ESL/.sisyphus/plans/esl-backend-phase1-basic-api.md",
+  "started_at": "2026-05-05T16:25:48.183Z",
+  "session_ids": [
+    "ses_207aad392ffeChUTDcCdG7jumI",
+    "ses_206fddee4ffe8VUvPAy5Bt7dRS",
+    "ses_206fdcba7ffdq6Qvwv80hBGFN0",
+    "ses_206fdb649ffdDoFSKAbvQZgPP4",
+    "ses_206fda6c9ffdAwnIeIHRF4w1iC"
+  ],
+  "session_origins": {
+    "ses_207aad392ffeChUTDcCdG7jumI": "direct",
+    "ses_206fddee4ffe8VUvPAy5Bt7dRS": "appended",
+    "ses_206fdcba7ffdq6Qvwv80hBGFN0": "appended",
+    "ses_206fdb649ffdDoFSKAbvQZgPP4": "appended",
+    "ses_206fda6c9ffdAwnIeIHRF4w1iC": "appended"
+  },
+  "plan_name": "esl-backend-phase1-basic-api",
+  "agent": "atlas",
+  "task_sessions": {
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "Plan Compliance Audit — oracle",
+      "session_id": "ses_206fda6c9ffdAwnIeIHRF4w1iC",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-05T16:41:17.060Z"
+    }
+  }
+}
