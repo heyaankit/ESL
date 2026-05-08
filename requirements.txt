@@ -19,3 +19,5 @@ onnxruntime
 misaki
 requests
 pyttsx3
+num2words
+spacy
