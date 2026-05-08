@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import Optional
+from typing import Optional, List
 from app.database import get_db
 from app.models.lesson import LessonItem
 
@@ -15,7 +15,7 @@ def list_grammar(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
-):
+) -> dict:
     query = db.query(
         LessonItem.id,
         LessonItem.lesson,
@@ -52,9 +52,9 @@ def list_grammar(
 
 
 @router.get("/{lesson_id}", response_model=dict)
-def get_grammar_by_lesson(lesson_id: str, db: Session = Depends(get_db)):
+def get_grammar_by_lesson(lesson_id: str, db: Session = Depends(get_db)) -> dict:
     all_lessons = db.query(LessonItem.lesson).distinct().all()
-    matching_lesson = None
+    matching_lesson: Optional[str] = None
     for l in all_lessons:
         if l.lesson.startswith(lesson_id):
             matching_lesson = l.lesson
@@ -72,8 +72,8 @@ def get_grammar_by_lesson(lesson_id: str, db: Session = Depends(get_db)):
         LessonItem.grammar_explanation.isnot(None)
     ).distinct().all()
 
-    explanations = []
-    seen = set()
+    explanations: List[dict] = []
+    seen: set = set()
     for item in items:
         if item.grammar_explanation and item.grammar_explanation not in seen:
             explanations.append({

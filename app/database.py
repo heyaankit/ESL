@@ -1,13 +1,19 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, declarative_base, DeclarativeBase
+from app.config import settings
 
-DATABASE_URL = "sqlite:///esl.db"
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+class Base(DeclarativeBase):
+    pass
+
+
+engine = create_engine(
+    settings.database_url_with_params,
+    echo=settings.database_echo,
+    connect_args={"check_same_thread": False} if settings.database_url.startswith("sqlite") else {},
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-Base = declarative_base()
 
 
 def get_db():

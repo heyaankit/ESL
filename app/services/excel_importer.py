@@ -3,16 +3,18 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app.models.lesson import LessonItem
 from app.models.lesson import Base
+from app.logger import logger
+from app.config import settings
 
 
 def import_data():
-    df = pd.read_excel("English_Learning_Data_Clean.xlsx", sheet_name="All_Lessons")
+    df = pd.read_excel(settings.excel_file_path, sheet_name="All_Lessons")
 
     db = SessionLocal()
     try:
         existing_count = db.query(LessonItem).count()
         if existing_count > 0:
-            print(f"Data already exists ({existing_count} records). Skipping import.")
+            logger.info(f"Data already exists ({existing_count} records). Skipping import.")
             return
 
         records = []
@@ -44,11 +46,11 @@ def import_data():
 
         db.bulk_save_objects(records)
         db.commit()
-        print(f"Imported {len(records)} records successfully.")
+        logger.info(f"Imported {len(records)} records successfully.")
 
     except Exception as e:
         db.rollback()
-        print(f"Error importing data: {e}")
+        logger.error(f"Error importing data: {e}")
         raise
     finally:
         db.close()

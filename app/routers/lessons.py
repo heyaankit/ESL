@@ -1,12 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from typing import Optional, List
+from pydantic import BaseModel, Field
 from app.database import get_db
 from app.models.lesson import LessonItem
-from pydantic import BaseModel
+from app.config import settings
 
 router = APIRouter()
+
+
+def _get_concat_agg(col):
+    """Return database-specific string aggregation function."""
+    if settings.database_url.startswith("postgresql"):
+        return func.string_agg(col, ',')
+    return func.group_concat(col)
 
 
 class SubTopicSummary(BaseModel):
@@ -49,15 +57,15 @@ class LessonDetail(BaseModel):
 
 
 @router.get("", response_model=dict)
-def list_lessons(db: Session = Depends(get_db)):
+def list_lessons(db: Session = Depends(get_db)) -> dict:
     lessons_data = db.query(
         LessonItem.lesson,
-        LessonItem.grammar_topic,
-        func.group_concat(LessonItem.sub_topic).label("sub_topics"),
+        func.max(LessonItem.grammar_topic).label("grammar_topic"),
+        _get_concat_agg(LessonItem.sub_topic).label("sub_topics"),
         func.count(LessonItem.id).label("total_items"),
     ).group_by(LessonItem.lesson).all()
 
-    result = []
+    result: List[dict] = []
     for row in lessons_data:
         sub_topics = row.sub_topics.split(",") if row.sub_topics else []
         sub_topics = list(set(sub_topics))
@@ -88,11 +96,11 @@ def get_lesson(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
-):
+) -> dict:
     lesson_name = f"{lesson_id} Noun" if lesson_id.startswith("1.") else f"{lesson_id} Noun"
 
     all_lessons = db.query(LessonItem.lesson).distinct().all()
-    matching_lesson = None
+    matching_lesson: Optional[str] = None
     for l in all_lessons:
         if l.lesson.startswith(lesson_id):
             matching_lesson = l.lesson
@@ -110,10 +118,10 @@ def get_lesson(
     offset = (page - 1) * limit
     items = query.offset(offset).limit(limit).all()
 
-    sub_topics = db.query(LessonItem.sub_topic).filter(
+    sub_topics_data = db.query(LessonItem.sub_topic).filter(
         LessonItem.lesson == matching_lesson
     ).distinct().all()
-    sub_topics = list(set([s.sub_topic for s in sub_topics]))
+    sub_topics = list(set([s.sub_topic for s in sub_topics_data]))
 
     grammar_topic = db.query(LessonItem.grammar_topic).filter(
         LessonItem.lesson == matching_lesson
@@ -146,9 +154,9 @@ def get_lesson(
 
 
 @router.get("/{lesson_id}/subtopics", response_model=dict)
-def get_subtopics(lesson_id: str, db: Session = Depends(get_db)):
+def get_subtopics(lesson_id: str, db: Session = Depends(get_db)) -> dict:
     all_lessons = db.query(LessonItem.lesson).distinct().all()
-    matching_lesson = None
+    matching_lesson: Optional[str] = None
     for l in all_lessons:
         if l.lesson.startswith(lesson_id):
             matching_lesson = l.lesson
@@ -162,7 +170,7 @@ def get_subtopics(lesson_id: str, db: Session = Depends(get_db)):
         func.count(LessonItem.id).label("item_count")
     ).filter(LessonItem.lesson == matching_lesson).group_by(LessonItem.sub_topic).all()
 
-    subtopics = []
+    subtopics: List[dict] = []
     for st in sub_topics_data:
         has_exercises = db.query(LessonItem).filter(
             LessonItem.lesson == matching_lesson,
@@ -186,9 +194,9 @@ def get_lesson_items(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db)
-):
+) -> dict:
     all_lessons = db.query(LessonItem.lesson).distinct().all()
-    matching_lesson = None
+    matching_lesson: Optional[str] = None
     for l in all_lessons:
         if l.lesson.startswith(lesson_id):
             matching_lesson = l.lesson

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.database import get_db
 from app.models.lesson import LessonItem
 
@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 class AnswerCheck(BaseModel):
-    item_id: int
+    item_id: int = Field(..., gt=0)
     response: str
 
 
@@ -24,7 +24,7 @@ def list_exercises(
     lesson: Optional[str] = Query(None),
     sub_topic: Optional[str] = Query(None),
     db: Session = Depends(get_db)
-):
+) -> dict:
     query = db.query(
         LessonItem.lesson,
         LessonItem.sub_topic,
@@ -58,15 +58,12 @@ def list_exercises(
 
 
 @router.get("/{exercise_id}", response_model=dict)
-def get_exercise(exercise_id: str, db: Session = Depends(get_db)):
-    try:
-        parts = exercise_id.split("_")
-        lesson_id = parts[0]
-    except:
-        raise HTTPException(status_code=400, detail="Invalid exercise_id format")
+def get_exercise(exercise_id: str, db: Session = Depends(get_db)) -> dict:
+    parts = exercise_id.split("_")
+    lesson_id = parts[0]
 
     all_lessons = db.query(LessonItem.lesson).distinct().all()
-    matching_lesson = None
+    matching_lesson: Optional[str] = None
     for l in all_lessons:
         if l.lesson.startswith(lesson_id):
             matching_lesson = l.lesson
@@ -104,8 +101,8 @@ def check_exercise(
     exercise_id: str,
     request: ExerciseCheckRequest,
     db: Session = Depends(get_db)
-):
-    results = []
+) -> dict:
+    results: List[dict] = []
     correct_count = 0
 
     for answer in request.answers:
