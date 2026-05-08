@@ -4,11 +4,12 @@ from sqlalchemy import func
 from typing import Optional, List
 from app.database import get_db
 from app.models.lesson import LessonItem
+from app.utils.response import success, error
 
 router = APIRouter()
 
 
-@router.get("", response_model=dict)
+@router.get("")
 def list_grammar(
     lesson: Optional[str] = Query(None),
     q: Optional[str] = Query(None),
@@ -16,6 +17,7 @@ def list_grammar(
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
 ) -> dict:
+    """List grammar explanations with optional filters."""
     query = db.query(
         LessonItem.id,
         LessonItem.lesson,
@@ -35,7 +37,7 @@ def list_grammar(
     offset = (page - 1) * limit
     items = query.offset(offset).limit(limit).all()
 
-    return {
+    return success(data={
         "total": total,
         "explanations": [
             {
@@ -48,11 +50,12 @@ def list_grammar(
             }
             for item in items
         ]
-    }
+    }, message="Grammar explanations retrieved")
 
 
-@router.get("/{lesson_id}", response_model=dict)
+@router.get("/{lesson_id}")
 def get_grammar_by_lesson(lesson_id: str, db: Session = Depends(get_db)) -> dict:
+    """Get grammar explanations for a specific lesson (deduplicated)."""
     all_lessons = db.query(LessonItem.lesson).distinct().all()
     matching_lesson: Optional[str] = None
     for l in all_lessons:
@@ -61,7 +64,7 @@ def get_grammar_by_lesson(lesson_id: str, db: Session = Depends(get_db)) -> dict
             break
 
     if not matching_lesson:
-        raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} not found")
+        return error(message=f"Lesson {lesson_id} not found")
 
     items = db.query(
         LessonItem.id,
@@ -83,8 +86,8 @@ def get_grammar_by_lesson(lesson_id: str, db: Session = Depends(get_db)) -> dict
             })
             seen.add(item.grammar_explanation)
 
-    return {
+    return success(data={
         "lesson_id": lesson_id,
         "lesson_name": matching_lesson,
         "grammar_explanations": explanations
-    }
+    }, message="Grammar explanations for lesson retrieved")

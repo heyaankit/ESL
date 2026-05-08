@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from app.database import get_db
 from app.models.lesson import LessonItem
+from app.utils.response import success, error
 from app.config import settings
 
 router = APIRouter()
@@ -56,8 +57,9 @@ class LessonDetail(BaseModel):
     items: List[LessonItemResponse]
 
 
-@router.get("", response_model=dict)
+@router.get("")
 def list_lessons(db: Session = Depends(get_db)) -> dict:
+    """List all app lessons with aggregated metadata."""
     lessons_data = db.query(
         LessonItem.lesson,
         func.max(LessonItem.grammar_topic).label("grammar_topic"),
@@ -86,10 +88,10 @@ def list_lessons(db: Session = Depends(get_db)) -> dict:
             "has_exercises": has_exercises
         })
 
-    return {"lessons": result}
+    return success(data={"lessons": result}, message="Lessons retrieved")
 
 
-@router.get("/{lesson_id}", response_model=LessonDetail)
+@router.get("/{lesson_id}")
 def get_lesson(
     lesson_id: str,
     sub_topic: Optional[str] = Query(None),
@@ -97,8 +99,7 @@ def get_lesson(
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db)
 ) -> dict:
-    lesson_name = f"{lesson_id} Noun" if lesson_id.startswith("1.") else f"{lesson_id} Noun"
-
+    """Get lesson detail with paginated items."""
     all_lessons = db.query(LessonItem.lesson).distinct().all()
     matching_lesson: Optional[str] = None
     for l in all_lessons:
@@ -107,7 +108,7 @@ def get_lesson(
             break
 
     if not matching_lesson:
-        raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} not found")
+        return error(message=f"Lesson {lesson_id} not found")
 
     query = db.query(LessonItem).filter(LessonItem.lesson == matching_lesson)
 
@@ -127,7 +128,7 @@ def get_lesson(
         LessonItem.lesson == matching_lesson
     ).first()
 
-    return {
+    return success(data={
         "lesson_id": lesson_id,
         "lesson_name": matching_lesson,
         "grammar_topic": grammar_topic.grammar_topic if grammar_topic else None,
@@ -150,11 +151,12 @@ def get_lesson(
             }
             for item in items
         ]
-    }
+    }, message="Lesson details retrieved")
 
 
-@router.get("/{lesson_id}/subtopics", response_model=dict)
+@router.get("/{lesson_id}/subtopics")
 def get_subtopics(lesson_id: str, db: Session = Depends(get_db)) -> dict:
+    """List subtopics for a lesson with item counts and exercise flags."""
     all_lessons = db.query(LessonItem.lesson).distinct().all()
     matching_lesson: Optional[str] = None
     for l in all_lessons:
@@ -163,7 +165,7 @@ def get_subtopics(lesson_id: str, db: Session = Depends(get_db)) -> dict:
             break
 
     if not matching_lesson:
-        raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} not found")
+        return error(message=f"Lesson {lesson_id} not found")
 
     sub_topics_data = db.query(
         LessonItem.sub_topic,
@@ -184,10 +186,10 @@ def get_subtopics(lesson_id: str, db: Session = Depends(get_db)) -> dict:
             "has_exercises": has_exercises
         })
 
-    return {"lesson_id": lesson_id, "subtopics": subtopics}
+    return success(data={"lesson_id": lesson_id, "subtopics": subtopics}, message="Subtopics retrieved")
 
 
-@router.get("/{lesson_id}/items", response_model=dict)
+@router.get("/{lesson_id}/items")
 def get_lesson_items(
     lesson_id: str,
     sub_topic: Optional[str] = Query(None),
@@ -195,6 +197,7 @@ def get_lesson_items(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db)
 ) -> dict:
+    """Get lesson items (paginated, optional sub_topic filter)."""
     all_lessons = db.query(LessonItem.lesson).distinct().all()
     matching_lesson: Optional[str] = None
     for l in all_lessons:
@@ -203,7 +206,7 @@ def get_lesson_items(
             break
 
     if not matching_lesson:
-        raise HTTPException(status_code=404, detail=f"Lesson {lesson_id} not found")
+        return error(message=f"Lesson {lesson_id} not found")
 
     query = db.query(LessonItem).filter(LessonItem.lesson == matching_lesson)
 
@@ -214,7 +217,7 @@ def get_lesson_items(
     offset = (page - 1) * limit
     items = query.offset(offset).limit(limit).all()
 
-    return {
+    return success(data={
         "lesson_id": lesson_id,
         "sub_topic": sub_topic or "all",
         "total": total,
@@ -230,4 +233,4 @@ def get_lesson_items(
             }
             for item in items
         ]
-    }
+    }, message="Lesson items retrieved")

@@ -1,5 +1,5 @@
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, create_engine
 from alembic import context
 import sys
 import os
@@ -8,8 +8,21 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import Base
 from app.config import settings
-from app.models.lesson import LessonItem
-from app.models.user import User, UserProgress
+
+# Import ALL models so Alembic can detect them
+from app.models.user import User, OTPStore, UserProgress, UserPreferences
+from app.models.lesson import (
+    LessonItem, LessonProgress, LessonAnswer,
+    QuestionAttempt, LessonAppProgress, LessonAppAnswer,
+)
+from app.models.quiz import UserQuizData, QuizHistory
+from app.models.chat import (
+    ChatHistory, SentenceCorrection, UserLearningState,
+    UserRelationship, Dialog, UserDialogProgress, UserLevelAssessment,
+)
+from app.models.audio import AudioFile, AudioAnswer
+from app.models.notification import UserNotification
+from app.models.content import PrivacyPolicy, FAQ, ContactUs, UserSubscription, Content
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url_with_params)
@@ -34,9 +47,9 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    # Use the URL from settings directly to avoid parent .env interference
+    connectable = create_engine(
+        settings.database_url_with_params,
         poolclass=pool.NullPool,
     )
 

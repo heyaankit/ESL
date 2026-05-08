@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import random
+from collections import defaultdict
 from jose import JWTError, jwt
 import bcrypt
 from fastapi import HTTPException, status, Depends
@@ -11,6 +12,10 @@ from app.database import get_db
 from app.models.user import User
 
 security = HTTPBearer()
+
+# In-memory rate limiter for OTP requests
+# Maps user_id -> list of request timestamps
+_otp_request_log: dict[str, list[datetime]] = defaultdict(list)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -65,12 +70,12 @@ def get_current_user(
     return user
 
 
-def create_user(user_id: str, db: Session, gender: str, password: str = None) -> User:
+def create_user(user_id: str, db: Session, gender: str, password: str = None, email: str = None) -> User:
     existing = db.query(User).filter(User.user_id == user_id).first()
     if existing:
         return existing
     pwd_hash = get_password_hash(password) if password else ""
-    new_user = User(user_id=user_id, gender=gender, password_hash=pwd_hash)
+    new_user = User(user_id=user_id, gender=gender, password_hash=pwd_hash, email=email)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -84,6 +89,29 @@ def verify_user(username: str, password: str, db: Session) -> User:
     if not verify_password(password, user.password_hash):
         return None
     return user
+
+
+def check_otp_rate_limit(user_id: str) -> None:
+    """Check if user has exceeded OTP request rate limit.
+
+    Raises HTTPException 429 if rate limit is exceeded.
+    """
+    now = datetime.utcnow()
+    cutoff = now - timedelta(minutes=1)
+
+    # Clean up old entries
+    _otp_request_log[user_id] = [
+        ts for ts in _otp_request_log[user_id] if ts > cutoff
+    ]
+
+    if len(_otp_request_log[user_id]) >= settings.otp_rate_limit_per_minute:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many OTP requests. Maximum {settings.otp_rate_limit_per_minute} per minute."
+        )
+
+    # Record this request
+    _otp_request_log[user_id].append(now)
 
 
 def generate_otp_for_user(user: User, db: Session) -> str:

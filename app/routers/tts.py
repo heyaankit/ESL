@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from app.services.tts import generate_speech, get_voices
+from app.utils.response import success, error
 
 router = APIRouter(tags=["tts"])
 
@@ -25,6 +26,7 @@ class TTSRequest(BaseModel):
 
 @router.post("/speak")
 def speak(request: TTSRequest):
+    """Generate TTS audio (WAV) from arbitrary text."""
     try:
         voices = get_available_voices()
         if request.voice not in voices:
@@ -56,4 +58,5 @@ def speak(request: TTSRequest):
 
 @router.get("/voices")
 def list_voices():
-    return {"voices": get_available_voices()}
+    """List all available TTS voice names."""
+    return success(data={"voices": get_available_voices()}, message="Voices listed")

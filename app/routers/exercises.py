@@ -5,6 +5,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from app.database import get_db
 from app.models.lesson import LessonItem
+from app.utils.response import success, error
 
 router = APIRouter()
 
@@ -19,12 +20,13 @@ class ExerciseCheckRequest(BaseModel):
     answers: List[AnswerCheck]
 
 
-@router.get("", response_model=dict)
+@router.get("")
 def list_exercises(
     lesson: Optional[str] = Query(None),
     sub_topic: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ) -> dict:
+    """List exercise groups grouped by lesson/sub_topic/exercise_type."""
     query = db.query(
         LessonItem.lesson,
         LessonItem.sub_topic,
@@ -43,7 +45,7 @@ def list_exercises(
         LessonItem.exercise_type
     ).all()
 
-    return {
+    return success(data={
         "total": len(results),
         "exercises": [
             {
@@ -54,11 +56,12 @@ def list_exercises(
             }
             for r in results
         ]
-    }
+    }, message="Exercises listed")
 
 
-@router.get("/{exercise_id}", response_model=dict)
+@router.get("/{exercise_id}")
 def get_exercise(exercise_id: str, db: Session = Depends(get_db)) -> dict:
+    """Get exercise items for a lesson."""
     parts = exercise_id.split("_")
     lesson_id = parts[0]
 
@@ -70,7 +73,7 @@ def get_exercise(exercise_id: str, db: Session = Depends(get_db)) -> dict:
             break
 
     if not matching_lesson:
-        raise HTTPException(status_code=404, detail="Exercise not found")
+        return error(message="Exercise not found")
 
     items = db.query(LessonItem).filter(
         LessonItem.lesson == matching_lesson,
@@ -78,9 +81,9 @@ def get_exercise(exercise_id: str, db: Session = Depends(get_db)) -> dict:
     ).all()
 
     if not items:
-        raise HTTPException(status_code=404, detail="Exercise not found")
+        return error(message="Exercise not found")
 
-    return {
+    return success(data={
         "exercise_id": exercise_id,
         "lesson": matching_lesson,
         "sub_topic": items[0].sub_topic if items else None,
@@ -93,15 +96,16 @@ def get_exercise(exercise_id: str, db: Session = Depends(get_db)) -> dict:
             }
             for item in items if item.exercise_answers
         ]
-    }
+    }, message="Exercise items retrieved")
 
 
-@router.post("/{exercise_id}/check", response_model=dict)
+@router.post("/{exercise_id}/check")
 def check_exercise(
     exercise_id: str,
     request: ExerciseCheckRequest,
     db: Session = Depends(get_db)
 ) -> dict:
+    """Check exercise answers and return score."""
     results: List[dict] = []
     correct_count = 0
 
@@ -133,10 +137,10 @@ def check_exercise(
     total = len(results)
     score_percent = round((correct_count / total * 100), 1) if total > 0 else 0
 
-    return {
+    return success(data={
         "exercise_id": exercise_id,
         "total_questions": total,
         "correct": correct_count,
         "score_percent": score_percent,
         "results": results
-    }
+    }, message="Exercise checked")

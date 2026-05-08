@@ -2,7 +2,6 @@ import pandas as pd
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app.models.lesson import LessonItem
-from app.models.lesson import Base
 from app.logger import logger
 from app.config import settings
 

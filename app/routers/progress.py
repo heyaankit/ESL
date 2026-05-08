@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime
 from typing import Optional, List
@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.lesson import LessonItem
 from app.models.user import User, UserProgress
 from app.auth import get_current_user
+from app.utils.response import success, error
 
 router = APIRouter()
 
@@ -20,26 +21,24 @@ class ProgressRecord(BaseModel):
     time_spent_seconds: Optional[int] = Field(None, ge=0)
 
 
-@router.post("/{user_id}/progress", response_model=dict)
+@router.post("/{user_id}/progress")
 def record_progress(
     user_id: str,
     progress: ProgressRecord,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> dict:
+    """Record a progress event (word_viewed or exercise_attempt)."""
     if current_user.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this user's progress")
-    existing_user = db.query(User).filter(User.user_id == user_id).first()
-    if not existing_user:
-        new_user = User(user_id=user_id)
-        db.add(new_user)
-        db.commit()
+        return error(message="Not authorized to access this user's progress")
 
     record = UserProgress(
         user_id=user_id,
         item_id=progress.item_id,
         viewed=progress.activity_type == "word_viewed",
         correct=progress.correct if progress.correct is not None else False,
+        response=progress.response,
+        time_spent_seconds=progress.time_spent_seconds,
         last_reviewed=datetime.utcnow()
     )
     db.add(record)
@@ -55,25 +54,27 @@ def record_progress(
         UserProgress.correct.isnot(None)
     ).count()
 
-    return {
+    return success(data={
         "user_id": user_id,
         "recorded": True,
         "total_words_learned": words_viewed,
         "total_exercises_completed": exercises_completed
-    }
+    }, message="Progress recorded")
 
 
-@router.get("/{user_id}/progress", response_model=dict)
+@router.get("/{user_id}/progress")
 def get_progress(
     user_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> dict:
+    """Get full progress summary with per-lesson breakdown."""
     if current_user.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this user's progress")
+        return error(message="Not authorized to access this user's progress")
+
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
-        return {
+        return success(data={
             "user_id": user_id,
             "total_words_viewed": 0,
             "total_words_learned": 0,
@@ -81,7 +82,7 @@ def get_progress(
             "total_exercises_correct": 0,
             "accuracy_percent": 0,
             "lessons_progress": []
-        }
+        }, message="No progress data found")
 
     words_viewed = db.query(UserProgress).filter(
         UserProgress.user_id == user_id,
@@ -121,7 +122,7 @@ def get_progress(
             "progress_percent": round((viewed_count / lp.total * 100), 1) if lp.total > 0 else 0
         })
 
-    return {
+    return success(data={
         "user_id": user_id,
         "total_words_viewed": words_viewed,
         "total_words_learned": words_viewed,
@@ -129,10 +130,10 @@ def get_progress(
         "total_exercises_correct": exercises_correct,
         "accuracy_percent": accuracy,
         "lessons_progress": lessons_list
-    }
+    }, message="Progress summary retrieved")
 
 
-@router.get("/{user_id}/weak-words", response_model=dict)
+@router.get("/{user_id}/weak-words")
 def get_weak_words(
     user_id: str,
     lesson: Optional[str] = None,
@@ -140,8 +141,10 @@ def get_weak_words(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> dict:
+    """Get words the user gets wrong most often."""
     if current_user.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this user's progress")
+        return error(message="Not authorized to access this user's progress")
+
     query = db.query(
         LessonItem.id,
         LessonItem.vocabulary_word,
@@ -161,7 +164,7 @@ def get_weak_words(
 
     weak_words = query.order_by(func.count(UserProgress.id).desc()).limit(limit).all()
 
-    return {
+    return success(data={
         "user_id": user_id,
         "weak_word_count": len(weak_words),
         "words": [
@@ -175,4 +178,4 @@ def get_weak_words(
             }
             for w in weak_words
         ]
-    }
+    }, message="Weak words retrieved")

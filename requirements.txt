@@ -11,13 +11,22 @@ passlib[bcrypt]
 python-multipart
 alembic
 psycopg2-binary
-torch
 huggingface-hub
 soundfile
 numpy
 onnxruntime
 misaki
 requests
-pyttsx3
-num2words
-spacy
+
+# Optional: AI service (uncomment when ready)
+# openai
+
+# Optional: Google Cloud TTS/STT (uncomment when ready)
+# google-cloud-texttospeech
+# google-cloud-speech
+
+# Optional: Firebase/FCM notifications (uncomment when ready)
+# firebase-admin
+
+# Optional: Google social login (uncomment when ready)
+# google-auth
