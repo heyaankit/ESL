@@ -23,17 +23,23 @@ class AIService:
     def _get_client(self):
         """Lazy-init OpenAI client when API key or base_url is available."""
         if self._client is None:
+            print(f"DEBUG: openai_configured={settings.openai_configured}, openai_base_url={settings.openai_base_url}")
             if settings.openai_configured or settings.openai_base_url:
                 try:
                     from openai import OpenAI
+                    print("DEBUG: OpenAI imported successfully")
                     self._client = OpenAI(
                         api_key=settings.openai_api_key or "dummy-key",
                         base_url=settings.openai_base_url or "https://api.openai.com/v1",
                         timeout=settings.openai_timeout_seconds,
                         max_retries=settings.openai_max_retries,
                     )
-                except ImportError:
+                    print("DEBUG: OpenAI client created successfully")
+                except ImportError as e:
+                    print(f"DEBUG: ImportError - {e}")
                     logger.warning("openai package not installed. AI features will use stubs.")
+            else:
+                print("DEBUG: Condition failed - neither openai_configured nor openai_base_url is set")
         return self._client
 
     def chat_completion(
