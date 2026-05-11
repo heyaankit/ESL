@@ -17,6 +17,8 @@ numpy
 onnxruntime
 misaki
 requests
+num2words
+spacy
 
 # Optional: AI service (uncomment when ready)
 # openai

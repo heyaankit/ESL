@@ -18,20 +18,22 @@ class AIService:
 
     @property
     def is_available(self) -> bool:
-        return settings.openai_configured
+        return settings.openai_configured or settings.openai_base_url is not None
 
     def _get_client(self):
-        """Lazy-init OpenAI client when API key is available."""
-        if self._client is None and settings.openai_configured:
-            try:
-                from openai import OpenAI
-                self._client = OpenAI(
-                    api_key=settings.openai_api_key,
-                    timeout=settings.openai_timeout_seconds,
-                    max_retries=settings.openai_max_retries,
-                )
-            except ImportError:
-                logger.warning("openai package not installed. AI features will use stubs.")
+        """Lazy-init OpenAI client when API key or base_url is available."""
+        if self._client is None:
+            if settings.openai_configured or settings.openai_base_url:
+                try:
+                    from openai import OpenAI
+                    self._client = OpenAI(
+                        api_key=settings.openai_api_key or "dummy-key",
+                        base_url=settings.openai_base_url or "https://api.openai.com/v1",
+                        timeout=settings.openai_timeout_seconds,
+                        max_retries=settings.openai_max_retries,
+                    )
+                except ImportError:
+                    logger.warning("openai package not installed. AI features will use stubs.")
         return self._client
 
     def chat_completion(

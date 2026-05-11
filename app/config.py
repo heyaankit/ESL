@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     # OpenAI (AI service for chat, quiz generation, answer evaluation)
     openai_api_key: Optional[str] = None
     openai_model: str = "gpt-4o-mini"
+    openai_base_url: Optional[str] = None  # For local models (e.g., Ollama)
     openai_max_retries: int = 3
     openai_timeout_seconds: int = 30
 

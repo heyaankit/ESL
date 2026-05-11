@@ -103,7 +103,7 @@ if os.path.exists(settings.upload_dir):
 
 
 # ─── Register routers ───
-from app.routers import auth, lessons, words, grammar, exercises, progress, tts
+from app.routers import auth, words, grammar, exercises, progress, tts
 
 # Phase 1: Health (replaces root /health)
 from app.routers.health import router as health_router
@@ -117,11 +117,8 @@ from app.routers.lesson import router as lesson_router
 from app.routers.learning import router as learning_router
 
 app.include_router(onboarding_router, prefix="/api/v1", tags=["onboarding"])
-app.include_router(lesson_router, prefix="/api/v1/lesson", tags=["lesson-dynamic"])
+app.include_router(lesson_router, prefix="/api/v1/lesson", tags=["lesson"])
 app.include_router(learning_router, prefix="/api/v1", tags=["learning"])
-
-# Existing routers (updated to legacy format)
-app.include_router(lessons.router, prefix="/api/v1/lessons", tags=["lessons"])
 app.include_router(words.router, prefix="/api/v1/words", tags=["words"])
 app.include_router(grammar.router, prefix="/api/v1/grammar", tags=["grammar"])
 app.include_router(exercises.router, prefix="/api/v1/exercises", tags=["exercises"])
