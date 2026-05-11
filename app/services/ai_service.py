@@ -59,9 +59,11 @@ class AIService:
             )
             return response.choices[0].message.content or ""
         except Exception as e:
-            logger.error(f"OpenAI API error: {e}")
-            return self._stub_chat_response(messages)
-
+            print("\n===== REAL OLLAMA ERROR =====")
+            print(repr(e))
+            print("=============================\n")
+            raise e
+        
     def generate_quiz_question(
         self,
         lesson_topic: str,
