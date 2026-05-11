@@ -3,7 +3,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/heyaankit/ESL)](https://github.com/heyaankit/ESL/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/heyaankit/ESL)](https://github.com/heyaankit/ESL/network)
 [![GitHub issues](https://img.shields.io/github/issues/heyaankit/ESL)](https://github.com/heyaankit/ESL/issues)
-[![License](https://img.shields.io/github/license/heyaankit/ESL)](https://github.com/heyaankit/ESL/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](https://github.com/heyaankit/ESL/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.14-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-white)](https://fastapi.tiangolo.com/)
 
