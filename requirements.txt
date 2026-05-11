@@ -21,7 +21,7 @@ num2words
 spacy
 
 # Optional: AI service (uncomment when ready)
-# openai
+openai
 
 # Optional: Google Cloud TTS/STT (uncomment when ready)
 # google-cloud-texttospeech
