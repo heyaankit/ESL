@@ -7,7 +7,8 @@ import random
 class User(Base):
     __tablename__ = "users"
 
-    user_id = Column(String, primary_key=True, index=True)
+    user_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    username = Column(String, nullable=True, index=True)  # Username for login (separate from user_id)
     password_hash = Column(String, nullable=False)
     gender = Column(String, nullable=False)
     email = Column(String, nullable=True)

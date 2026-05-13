@@ -55,12 +55,13 @@ def get_current_user(
 ) -> User:
     token = credentials.credentials
     payload = decode_token(token)
-    user_id: str = payload.get("sub")
-    if user_id is None:
+    user_id_str = payload.get("sub")
+    if user_id_str is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         )
+    user_id = int(user_id_str)
     user = db.query(User).filter(User.user_id == user_id).first()
     if user is None:
         raise HTTPException(
@@ -70,12 +71,14 @@ def get_current_user(
     return user
 
 
-def create_user(user_id: str, db: Session, gender: str, password: str = None, email: str = None) -> User:
-    existing = db.query(User).filter(User.user_id == user_id).first()
+def create_user(username: str, db: Session, gender: str, password: str = None, email: str = None) -> User:
+    existing = db.query(User).filter(User.username == username).first()
     if existing:
         return existing
+    last_user = db.query(User).order_by(User.user_id.desc()).first()
+    next_user_id = (last_user.user_id + 1) if last_user else 1
     pwd_hash = get_password_hash(password) if password else ""
-    new_user = User(user_id=user_id, gender=gender, password_hash=pwd_hash, email=email)
+    new_user = User(user_id=next_user_id, username=username, gender=gender, password_hash=pwd_hash, email=email)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -83,7 +86,7 @@ def create_user(user_id: str, db: Session, gender: str, password: str = None, em
 
 
 def verify_user(username: str, password: str, db: Session) -> User:
-    user = db.query(User).filter(User.user_id == username).first()
+    user = db.query(User).filter(User.username == username).first()
     if not user:
         return None
     if not verify_password(password, user.password_hash):
@@ -122,7 +125,7 @@ def generate_otp_for_user(user: User, db: Session) -> str:
 
 
 def verify_user_otp(username: str, otp_code: str, db: Session) -> User:
-    user = db.query(User).filter(User.user_id == username).first()
+    user = db.query(User).filter(User.username == username).first()
     if not user:
         return None
     if not user.otp_code or not user.otp_expires:

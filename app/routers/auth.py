@@ -87,13 +87,13 @@ def register(
 ):
     """Register a new user. Generates and sends OTP if email is available."""
     # Check if user already exists
-    existing = db.query(User).filter(User.user_id == request.username).first()
+    existing = db.query(User).filter(User.username == request.username).first()
     if existing:
         return error(message="User already exists. Please login.")
 
-    # Create the user via auth helper (sets user_id, gender, password_hash, email)
+    # Create the user via auth helper (generates user_id, sets username, gender, password_hash, email)
     user = create_user(
-        user_id=request.username,
+        username=request.username,
         db=db,
         gender=request.gender,
         password=request.password,
@@ -126,7 +126,7 @@ def register(
     return success(
         data={
             "user_id": user.user_id,
-            "username": user.user_id,
+            "username": user.username,
             "gender": user.gender,
             "otp_sent": otp_sent,
         },
@@ -160,7 +160,7 @@ def login(
     # Create JWT
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": user.user_id},
+        data={"sub": str(user.user_id)},
         expires_delta=access_token_expires,
     )
 
@@ -377,7 +377,7 @@ def verify_otp(
 
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": user.user_id},
+        data={"sub": str(user.user_id)},
         expires_delta=access_token_expires,
     )
 
@@ -504,7 +504,7 @@ def social_login(
     # Create JWT
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
-        data={"sub": user.user_id},
+        data={"sub": str(user.user_id)},
         expires_delta=access_token_expires,
     )
 
@@ -535,7 +535,7 @@ def request_otp(
     db: Session = Depends(get_db),
 ):
     """Generate and send OTP to an existing user (with rate limiting)."""
-    user = db.query(User).filter(User.user_id == request.username).first()
+    user = db.query(User).filter(User.username == request.username).first()
     if not user:
         return error(message="User not found. Please register first.")
 

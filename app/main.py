@@ -25,9 +25,14 @@ from app.models.chat import (
 from app.models.audio import AudioFile, AudioAnswer
 from app.models.notification import UserNotification
 from app.models.content import PrivacyPolicy, FAQ, ContactUs, UserSubscription, Content
+from app.models.peer_chat import (
+    UserLocation, PeerChatRoom, PeerChatMember,
+    PeerMessage, ChatRequest,
+)
 
 # ─── Import data seeding ───
 from app.services.excel_importer import import_data
+from app.services.peer_chat_service import peer_chat_service
 
 
 @asynccontextmanager
@@ -46,6 +51,8 @@ async def lifespan(app: FastAPI):
 
     # Seed Excel lesson data if DB is empty
     import_data()
+
+    peer_chat_service.seed_synthetic_locations()
 
     yield
 
@@ -142,6 +149,10 @@ app.include_router(cms_router, prefix="/api/v1", tags=["cms"])
 
 # Health endpoint
 app.include_router(health_router, tags=["health"])
+
+# Peer Chat
+from app.routers.peer_chat import router as peer_chat_router
+app.include_router(peer_chat_router, prefix="/api/v1/peer", tags=["peer_chat"])
 
 
 # ─── Root endpoint ───
