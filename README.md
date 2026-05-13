@@ -17,12 +17,14 @@ A FastAPI backend for an English Learning application with AI-powered chat, text
 - **Interactive Lessons** - Dynamic lesson flow with progress tracking
 - **Voice Answers** - Submit voice answers with transcription
 - **Quiz System** - AI-generated quiz questions
+- **Peer Discovery** - Find nearby users within configurable radius for practice
+- **Real-Time Chat** - WebSocket-based peer-to-peer messaging with chat rooms
 - **Authentication** - Phone/OTP-based authentication with JWT
 - **SQLite Database** - Simple, file-based database for easy setup
 
 ## Tech Stack
 
-- **FastAPI** - Modern Python web framework
+- **FastAPI** - Modern Python web framework with WebSocket support
 - **SQLAlchemy** - ORM for database operations
 - **SQLite** - File-based database
 - **Pydantic** - Data validation
@@ -45,13 +47,15 @@ ESL/
 │   │   ├── chat.py        # AI chat endpoints
 │   │   ├── lesson.py      # Dynamic lesson endpoints
 │   │   ├── tts.py         # Text-to-speech endpoints
+│   │   ├── peer_chat.py   # Peer discovery & real-time chat
 │   │   └── ...            # Other routers
 │   ├── models/            # SQLAlchemy models
+│   │   └── peer_chat.py   # Peer chat models
 │   ├── schemas/           # Pydantic schemas
 │   └── services/          # Business logic
 │       ├── ai_service.py  # AI chat service (OpenAI/Ollama)
 │       ├── tts.py         # Text-to-speech service
-│       ├── audio_service.py # Audio processing
+│       ├── peer_chat_service.py  # Peer discovery & chat service
 │       └── models/        # TTS model files
 │           ├── model.onnx # Kokoro TTS model
 │           └── voices/    # Voice preset files
@@ -173,40 +177,21 @@ API documentation: **http://localhost:8000/docs**
 | POST | `/api/v1/quiz/generate` | Generate quiz question |
 | POST | `/api/v1/quiz/evaluate` | Evaluate answer |
 
-## Example Usage (cURL)
+### Peer Chat (Discovery & Real-Time)
 
-### Register a user
-
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"phone": "97688123456", "password": "test123", "name": "Test User"}'
-```
-
-### Send a chat message
-
-```bash
-curl -X POST http://localhost:8000/api/v1/chat/send-message \
-  -F "user_id=user123" \
-  -F "message=Hello, I want to practice English" \
-  -F "mode=chat"
-```
-
-### Generate TTS audio
-
-```bash
-curl -X POST http://localhost:8000/api/v1/tts/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Hello, welcome to English learning!", "voice": "af_sarah"}'
-```
-
-### Start a lesson
-
-```bash
-curl -X POST http://localhost:8000/api/v1/lesson/start \
-  -F "user_id=user123" \
-  -F "lesson_id=1"
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/peer/location` | Update user location |
+| GET | `/api/v1/peer/search` | Search peers within range |
+| POST | `/api/v1/peer/request` | Send chat request |
+| GET | `/api/v1/peer/requests` | Get pending requests |
+| POST | `/api/v1/peer/request/{id}/accept` | Accept chat request |
+| POST | `/api/v1/peer/request/{id}/reject` | Reject chat request |
+| GET | `/api/v1/peer/rooms` | Get user's chat rooms |
+| GET | `/api/v1/peer/rooms/{id}/messages` | Get room messages |
+| POST | `/api/v1/peer/rooms/{id}/messages` | Send message |
+| POST | `/api/v1/peer/rooms/{id}/leave` | Leave chat room |
+| WS | `/ws/peer-chat` | WebSocket for real-time messaging |
 
 ## Database
 
